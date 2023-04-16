@@ -1,4 +1,4 @@
-from sympy import nextprime
+from sympy import nextprime, primerange
 import numpy as np
 
 def next_prime(num):
@@ -10,36 +10,28 @@ def mod_inverse(num, mod):
 def is_odd(num):
     return num % 2 == 1
 
-# def decipher():
-#     for s_ in s:
-#         vals = ''
-#         for a_ in sorted_a:
-#             if s_ >= a_:
-#                 vals = '1' + vals
-#                 s_ -= a_
-#             else:
-#                 vals = '0' + vals
-#         new_vals = ''
-#         for i in range(len(permutation)):
-#             new_vals += vals[permutation.index(i)]
-#         converted = str(int(new_vals, 2))
-#         while len(converted) < 14:
-#             converted = '0' + converted
-#         return converted
-
 def decipher(s_value):
+    s_temp = s_value
     r = []
-    for i in range(len(sorted_a)-1, -1, -1):
-        if sorted_a[i] <= s_value:
-            s_value -= sorted_a[i]
-            r.append(1)
+    for i in range(len(a_array_sorted)-1, -1, -1):
+        if a_array_sorted[i] <= s_temp:
+            s_temp -= a_array_sorted[i]
+            r.insert(0, 1)
         else:
-            r.append(0)
+            r.insert(0, 0)
+    
+    # rearrange the bits according to the permutation
+    plaintext = [r[permutation.index(i)] for i in range(len(permutation))]
 
-    return r[::-1]
+    # convert the bits to an int 
+    result_string = ''.join(map(str, plaintext)) 
+    result = str(int(result_string, 2))
+    if is_odd(len(str(result))):
+        result = '0' + str(result)
+    return result
 
-# constants
-b = [7379441564850969401451185884533,
+# givens
+b_array = [7379441564850969401451185884533,
     56378280776603722877755282,
     112884114224647725671523585,
     60452387844955357941794678553967454,
@@ -87,7 +79,7 @@ b = [7379441564850969401451185884533,
     967238205517244884325670378207270928,
     7556548480778860582024684714262208
     ]
-ciphers = [6327819136265758976293387001688200565,
+y_array = [6327819136265758976293387001688200565,
     2270322427702566814490499440446842385,
     7119660250384655947868434883198035547,
     4989003123096096429827434963224859970,
@@ -152,45 +144,49 @@ ciphers = [6327819136265758976293387001688200565,
     6102732791141689224451286336870773165,
     5101988693416509683614793078834752349
     ]
+
 M = next_prime(2036764117802210446778721319780021001)
 W = next_prime(127552671440279916013001)
 W_inverse = pow(W, -1, M)
-s = [(W_inverse * cipher) % M for cipher in ciphers]
-a = [(W_inverse * b[i]) % M for i in range(len(b))]
-sorted_a = sorted(a)
-permutation = [sorted_a.index(x) for x in a]
 
-new_a = np.array(a)
-new_permutation = np.argsort(new_a)
-permutation = new_permutation.tolist()
+s_array = [(W_inverse * y) % M for y in y_array]
+a_array = [(W_inverse * b_array[i]) % M for i in range(len(b_array))]
+a_array_sorted = sorted(a_array)
+
+# get the permutation the a_array
+temp = np.array(a_array)
+permutation = np.argsort(temp)
+permutation = permutation.tolist()
+
 matrix = [ 
-    " *4>HR\fo0",
-    "!+5?IS]gpy",
-    "\",6@JT^hqz",
-    "#-7AKU_ir{",
-    "$.8BLV`js|",
-    "%/9CMWakt}",
-    "&0:DNXblu~",
-    "'1;EOYcmv0",
-    "(2<FPZdnw\n",
-    ")3=GQ[e0x\r"
+    r" *4>HR\fo0",
+    u"!+5?IS]gpy",
+    u"\",6@JT^hqz",
+    u"#-7AKU_ir{",
+    u"$.8BLV`js|",
+    u"%/9CMWakt}",
+    u"&0:DNXblu~",
+    u"'1;EOYcmv0",
+    u"(2<FPZdnw\n",
+    u")3=GQ[e0x\r"
 ]
 
-result = decipher(s[0])
-result_string = ''.join(map(str, result)) 
-result = int(result_string, 2) 
+plaintext = ""
+for s in s_array:
+    result = decipher(s)
 
-chunks = []
-for i in range(0, len(str(result)), 2):
-    chunk = str(result)[i:i+2]
-    chunks.append(chunk)
+    # Split the result into 2-digit chunks
+    chunks = []
+    for i in range(0, len(result), 2):
+        chunk = result[i:i+2]
+        chunks.append(chunk)
 
-# Map each chunk to its corresponding character in the matrix
-result = ""
+    # Map each chunk to its corresponding character in the matrix
+    for chunk in chunks:
+        row = int(chunk) // 10
+        col = int(chunk) % 10
+        plaintext += matrix[row][col]
 
-for chunk in chunks:
-    row = int(chunk) // 10
-    col = int(chunk) % 10
-    result += matrix[row][col]
 
-print(f'result: {result}')
+with open('deceiphered.txt', 'w') as f:
+    f.write(plaintext)
